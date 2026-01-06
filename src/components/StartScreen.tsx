@@ -270,6 +270,11 @@ export const StartScreen: React.FC = () => {
                             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                         </button>
 
+                        {/* Footer */}
+                        <div className="text-center mt-8 text-slate-400 text-sm">
+                            <p>© 2026 USYD Student Simulation. All rights reserved.</p>
+                            <p className="mt-1">Developed by GitHub @LSS-Q Noah</p>
+                        </div>
                     </form>
                 </div>
             </div>

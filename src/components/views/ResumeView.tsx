@@ -39,17 +39,16 @@ export const ResumeView: React.FC = () => {
             {/* A4 Paper Container */}
             <div
                 ref={resumeRef}
-                className="bg-white shadow-2xl w-full max-w-[210mm] min-h-[297mm] p-[20mm] text-slate-900 print:shadow-none print:w-full"
-                style={{ aspectRatio: '210/297' }}
+                className="bg-white shadow-2xl w-full max-w-[210mm] md:min-h-[297mm] p-4 md:p-[20mm] text-slate-900 print:shadow-none print:w-full"
             >
                 {/* Header */}
                 <header className="border-b-2 border-slate-900 pb-6 mb-8">
                     <h1 className="text-4xl font-serif font-bold tracking-tight mb-2 uppercase">{profile.name}</h1>
-                    <div className="flex gap-4 text-sm text-slate-600 font-medium">
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600 font-medium">
                         <span>Sydney, NSW</span>
-                        <span>•</span>
-                        <span>{profile.name.toLowerCase().replace(/\s/g, '.')}@uni.sydney.edu.au</span>
-                        <span>•</span>
+                        <span className="hidden sm:inline">•</span>
+                        <span className="break-all">{profile.name.toLowerCase().replace(/\s/g, '.')}@uni.sydney.edu.au</span>
+                        <span className="hidden sm:inline">•</span>
                         <span>github.com/{profile.name.split(' ')[0]}</span>
                     </div>
                 </header>
@@ -124,11 +123,11 @@ export const ResumeView: React.FC = () => {
                         <h3 className="text-lg font-bold uppercase tracking-wider text-slate-800">Skills & competencies</h3>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-x-8 gap-y-4 ml-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 ml-3">
                         <div>
-                            <div className="flex justify-between text-sm font-bold text-slate-700 mb-1">
-                                <span>English Proficiency (PTE equivalent)</span>
-                                <span>{stats.english}</span>
+                            <div className="flex justify-between gap-2 text-sm font-bold text-slate-700 mb-1">
+                                <span className="shrink-0">English (PTE)</span>
+                                <span className="shrink-0">{stats.english}</span>
                             </div>
                             <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
                                 <div className="h-full bg-slate-800" style={{ width: `${Math.min(100, (stats.english / 90) * 100)}%` }}></div>
@@ -136,9 +135,9 @@ export const ResumeView: React.FC = () => {
                         </div>
 
                         <div>
-                            <div className="flex justify-between text-sm font-bold text-slate-700 mb-1">
-                                <span>Technical / Coding</span>
-                                <span>{stats.coding || stats.intelligence}</span>
+                            <div className="flex justify-between gap-2 text-sm font-bold text-slate-700 mb-1">
+                                <span className="shrink-0">Technical / Coding</span>
+                                <span className="shrink-0">{stats.coding || stats.intelligence}</span>
                             </div>
                             <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
                                 <div className="h-full bg-slate-800" style={{ width: `${stats.coding || stats.intelligence}%` }}></div>
@@ -146,18 +145,18 @@ export const ResumeView: React.FC = () => {
                         </div>
 
                         <div>
-                            <div className="flex justify-between text-sm font-bold text-slate-700 mb-1">
-                                <span>Professional Network</span>
-                                <span>{stats.network} Connections</span>
+                            <div className="flex justify-between gap-2 text-sm font-bold text-slate-700 mb-1">
+                                <span className="shrink-0">Network</span>
+                                <span className="shrink-0">{stats.network}</span>
                             </div>
                             <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
                                 <div className="h-full bg-slate-800" style={{ width: `${Math.min(100, stats.network)}%` }}></div>
                             </div>
                         </div>
                         <div>
-                            <div className="flex justify-between text-sm font-bold text-slate-700 mb-1">
-                                <span>Adaptability (Sanity Management)</span>
-                                <span>{stats.sanity}/100</span>
+                            <div className="flex justify-between gap-2 text-sm font-bold text-slate-700 mb-1">
+                                <span className="shrink-0">Sanity</span>
+                                <span className="shrink-0">{stats.sanity}/100</span>
                             </div>
                             <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
                                 <div className="h-full bg-slate-800" style={{ width: `${stats.sanity}%` }}></div>

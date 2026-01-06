@@ -141,7 +141,7 @@ export const DashboardView: React.FC = () => {
                 ))}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[500px]">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-[500px]">
 
                 {/* Left: Action Centre */}
                 <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col">
