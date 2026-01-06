@@ -2,6 +2,7 @@
   "name": "usyd-student-simulation",
   "private": true,
   "version": "0.0.0",
+  "author": "LSS-Q Noah",
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -153,3 +153,9 @@ The game now uses `aus-sim-storage-v2`.
 ---
 
 **Good luck on your PR journey! 祝你早日上岸！** 🌏➡️🇦🇺
+
+---
+
+## 👨‍💻 Credits | 版权归属
+This project is created and maintained by GitHub user **LSS-Q Noah**.
+本项目由 GitHub 用户 **LSS-Q Noah** 开发与维护。
