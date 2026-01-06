@@ -9,35 +9,44 @@ import { ACADEMIC_EVENTS } from '../data/events/academics';
 import { CAREER_EVENTS } from '../data/events/career';
 import { LIFE_EVENTS } from '../data/events/life';
 import { SPECIAL_EVENTS } from '../data/events/special';
+import { RANDOM_EVENTS } from '../data/events/random';
+import { ALL_ITEMS, CONSUMABLES } from '../data/items';
+import { SoundManager } from '../utils/SoundManager';
+import { useLegacyStore, LEGACY_BUFFS } from './useLegacyStore';
+import { EndingType } from '../types/endings';
 
 // Helper to get a random event from the existing pool
-const getRandomEvent = (phase: GamePhase): GameEvent | null => {
+// Helper to get a random event from the existing pool
+const getRandomEvent = (state: GameState): GameEvent | null => {
     const allEvents = [
         ...Object.values(ACADEMIC_EVENTS),
         ...Object.values(CAREER_EVENTS),
-        ...Object.values(LIFE_EVENTS)
+        ...Object.values(LIFE_EVENTS),
+        ...RANDOM_EVENTS
     ];
 
-    // Simple filter: only academic in student phase, etc. (Can be more complex)
-    const filtered = allEvents.filter(e => {
-        if (phase === 'student') return e.type === 'academic' || e.type === 'life';
-        if (phase === 'graduate') return e.type === 'career' || e.type === 'life';
+    const validEvents = allEvents.filter(e => {
+        // If event has specific trigger condition, use it
+        if (e.triggerCondition) {
+            return e.triggerCondition(state);
+        }
+
+        // Fallback checks based on phase
+        if (state.phase === 'student') return e.type === 'academic' || e.type === 'life';
+        if (state.phase === 'graduate') return e.type === 'career' || e.type === 'life';
+
         return true;
     });
 
-    if (filtered.length === 0) return null;
-    return filtered[Math.floor(Math.random() * filtered.length)];
+    if (validEvents.length === 0) return null;
+    return validEvents[Math.floor(Math.random() * validEvents.length)];
 };
 
 // Extend GameState to include active event and new structures
-interface ExtendedGameState extends Omit<GameState, 'visaExpiryDays'> {
+interface ExtendedGameState extends GameState {
     currentEvent: GameEvent | null;
-    visaStatus: VisaStatus;
-    quartersStudied: number; // Track academic progress
-    housing: HousingType;
-    currentRegion: RegionType;
-    assets: AssetType[];
     npcRelations: Record<string, number>; // Store dynamic relationship values
+    hasTakenWeekendAction: boolean; // P2: Track if weekend action used this quarter
 }
 
 interface GameActions {
@@ -73,7 +82,22 @@ interface GameActions {
     addAsset: (asset: AssetType) => void;
 
     // V2.0 NPC Actions
+    // V2.0 NPC Actions
     interactWithNPC: (npcId: string, action: 'chat' | 'gift' | 'date') => void;
+
+    // V3.0 Items & Actions
+    drinkCoffee: (itemId: string) => void;
+    buyGift: (itemId: string) => void;
+    giveGift: (npcId: string, giftId: string) => void;
+    handleStudyComplete: (score: number) => void;
+
+    // Phase 4: Endings
+    triggerEnding: (endingId: EndingType) => void;
+    checkEnding: () => void;
+
+    // Phase 10: P2 Polish
+    performWeekendAction: (cost: { money: number }, effect: { sanity: number; experience?: number; network?: number }) => void;
+    setPlayerProfile: (profile: Partial<PlayerProfile>) => void;
 }
 
 type GameStore = ExtendedGameState & GameActions;
@@ -93,19 +117,22 @@ const INITIAL_DATA_BASE: Omit<ExtendedGameState, 'eventsLog' | 'actions' | 'star
     quarter: 1,
     totalQuarters: 1,
     quartersStudied: 0,
+    coffeeConsumed: 0,
+    inventory: [],
     stats: { ...INITIAL_STATS, age: 24 }, // Default age 24, will be set by profile
     phase: 'intro',
     visaStatus: { subclass: 'subclass_500', expiryDays: 0 },
-    actionPoints: 10,
-    maxActionPoints: 10,
+    actionPoints: 50,
+    maxActionPoints: 50,
     isGameOver: false,
     gameOverReason: null,
     eventsLog: [],
 
     currentEvent: null,
     housing: 'shared_room',
-    currentRegion: 'eastern_suburbs', // Default for UNSW
+    currentRegion: 'eastern_suburbs', // Default for USYD
     assets: [],
+    hasTakenWeekendAction: false, // P2: Weekend action flag
     npcRelations: Object.keys(NPC_DATA).reduce((acc, key) => ({
         ...acc,
         [key]: NPC_DATA[key].initialRel
@@ -114,7 +141,8 @@ const INITIAL_DATA_BASE: Omit<ExtendedGameState, 'eventsLog' | 'actions' | 'star
         name: 'Player',
         gender: 'female',
         degree: 'master',
-        major: 'commerce'
+        major: 'commerce',
+        background: 'middle'
     }
 };
 
@@ -124,26 +152,64 @@ export const useGameStore = create<GameStore>()(
             ...INITIAL_DATA_BASE,
 
             startGame: (profile) => {
+                const legacyStore = useLegacyStore.getState();
+                const activeBuffs = legacyStore.activeBuffs || [];
+
                 const degreeData = DEGREE_CONFIG[profile.degree];
+                let initialStats: PlayerStats = { ...INITIAL_STATS, age: degreeData.initialAge };
+
+                // Set initial money based on background
+                let initialMoney = 10000; // Middle class default
+                if (profile.background === 'wealthy') initialMoney = 50000;
+                if (profile.background === 'working') initialMoney = 5000;
+                initialStats.money = initialMoney;
+
+                let initialRels: Record<string, number> = {};
+                // Default Rels
+                Object.keys(NPC_DATA).forEach(key => {
+                    initialRels[key] = NPC_DATA[key].initialRel;
+                });
+
+                // Apply Buffs
+                activeBuffs.forEach(buffId => {
+                    const buff = LEGACY_BUFFS.find(b => b.id === buffId);
+                    if (buff) {
+                        if (buff.id === 'social_butterfly') {
+                            Object.keys(NPC_DATA).forEach(npcId => {
+                                initialRels[npcId] = (initialRels[npcId] || 0) + 15;
+                            });
+                        } else {
+                            initialStats = buff.apply(initialStats);
+                        }
+                    }
+                });
+
+                // const degreeData = DEGREE_CONFIG[profile.degree]; // Already defined above
                 const initialVisa = getInitialVisa(profile.degree);
 
                 set({
-                    ...INITIAL_DATA_BASE, // Reset stats to initial
+                    ...INITIAL_DATA_BASE,
                     profile,
+                    stats: initialStats,
+                    npcRelations: initialRels,
                     visaStatus: initialVisa,
-                    stats: {
-                        ...INITIAL_STATS,
-                        age: degreeData.initialAge
-                    },
+                    phase: 'student',
+                    isGameOver: false,
+                    gameOverReason: null,
 
-                    housing: 'shared_room', // Default starting housing
+                    // Explicitly set these from Base to ensure reset
+                    year: INITIAL_DATA_BASE.year,
+                    quarter: INITIAL_DATA_BASE.quarter,
+                    totalQuarters: INITIAL_DATA_BASE.totalQuarters,
+                    quartersStudied: INITIAL_DATA_BASE.quartersStudied,
+                    coffeeConsumed: INITIAL_DATA_BASE.coffeeConsumed,
+                    inventory: [],
+                    actionPoints: INITIAL_DATA_BASE.actionPoints,
+                    currentEvent: null,
+                    housing: 'shared_room',
                     currentRegion: 'eastern_suburbs',
                     assets: [],
-                    npcRelations: Object.keys(NPC_DATA).reduce((acc, key) => ({
-                        ...acc,
-                        [key]: NPC_DATA[key].initialRel
-                    }), {} as Record<string, number>),
-                    phase: 'student', // Start the game loop
+                    eventsLog: INITIAL_DATA_BASE.eventsLog,
                 });
             },
 
@@ -161,19 +227,27 @@ export const useGameStore = create<GameStore>()(
             updateStats: (delta) => {
                 set((state) => {
                     const newStats = { ...state.stats };
+                    let moneyChanged = false;
+
                     (Object.keys(delta) as Array<keyof PlayerStats>).forEach((key) => {
                         const val = delta[key];
                         if (val !== undefined) {
                             newStats[key] = Math.max(0, newStats[key] + val);
                             if (key === 'sanity') newStats[key] = Math.min(100, newStats[key]);
                             if (key === 'wam') newStats[key] = Math.min(100, newStats[key]);
+
+                            if (key === 'money' && val !== 0) moneyChanged = true;
                         }
                     });
 
+                    if (moneyChanged) SoundManager.playMoney();
+
                     if (newStats.sanity <= 0) {
+                        SoundManager.playError();
                         get().triggerGameOver("你因长期精神压力过大，患上了严重抑郁症，被迫休学回国。");
                     }
                     if (newStats.money < -5000) {
+                        SoundManager.playError();
                         get().triggerGameOver("你因无法支付学费和房租，被遣返回国。");
                     }
 
@@ -209,6 +283,7 @@ export const useGameStore = create<GameStore>()(
             },
 
             advanceQuarter: () => {
+                SoundManager.playSuccess(); // Quarter end sound
                 set((state) => {
                     let newQuarter = state.quarter + 1;
                     let newYear = state.year;
@@ -237,9 +312,9 @@ export const useGameStore = create<GameStore>()(
                         // Trigger Graduation Decision Event
                         get().triggerEvent(SPECIAL_EVENTS['graduation_decision']);
                         get().addLog("🎉 恭喜！你完成了学业！现在面临人生的抉择...");
-                    } else if (Math.random() < 0.6) {
+                    } else if (Math.random() < 0.45) { // Increased prob to 45% for testing
                         // Trigger random event (unless graduating)
-                        const event = getRandomEvent(state.phase);
+                        const event = getRandomEvent(state);
                         if (event) get().triggerEvent(event);
                     }
 
@@ -256,11 +331,26 @@ export const useGameStore = create<GameStore>()(
                     const regionSanity = currentRegion.sanityModifier;
                     const totalSanityEffect = housingSanity + regionSanity;
 
-                    get().updateMoney(-rentCost);
-                    get().updateSanity(totalSanityEffect);
-
                     get().addLog(`Paid housing rent: $${rentCost} (${currentHousing.label} @ ${currentRegion.label}). Sanity ${totalSanityEffect > 0 ? '+' : ''}${totalSanityEffect}.`);
 
+                    // Calculate new stats
+                    const finalMoney = state.stats.money - rentCost;
+                    const newSanity = Math.max(0, Math.min(100, state.stats.sanity + totalSanityEffect));
+
+                    let isGameOver = state.isGameOver;
+                    let gameOverReason = state.gameOverReason;
+
+                    // Trigger Game Over checks
+                    if (newSanity <= 0) {
+                        isGameOver = true;
+                        gameOverReason = "你因长期精神压力过大，患上了严重抑郁症，被迫休学回国。";
+                        SoundManager.playError();
+                    }
+                    if (finalMoney < 0) {
+                        isGameOver = true;
+                        gameOverReason = `资金链断裂！你现在负债 $${Math.abs(finalMoney)}，无力支付房租，破产清算。`;
+                        SoundManager.playError();
+                    }
 
                     return {
                         year: newYear,
@@ -269,7 +359,15 @@ export const useGameStore = create<GameStore>()(
                         quartersStudied: newQuartersStudied,
                         visaStatus: { ...state.visaStatus, expiryDays: newVisaDays },
                         actionPoints: state.maxActionPoints, // Reset AP
-                        stats: { ...state.stats, age: state.stats.age + ageIncrement }
+                        hasTakenWeekendAction: false, // Reset weekend action status
+                        isGameOver,
+                        gameOverReason,
+                        stats: {
+                            ...state.stats,
+                            age: state.stats.age + ageIncrement,
+                            money: finalMoney, // Allow negative for display on ending screen
+                            sanity: newSanity
+                        }
                     };
                 });
             },
@@ -318,7 +416,8 @@ export const useGameStore = create<GameStore>()(
                         ...ACADEMIC_EVENTS,
                         ...CAREER_EVENTS,
                         ...LIFE_EVENTS,
-                        ...SPECIAL_EVENTS
+                        ...SPECIAL_EVENTS,
+                        ...RANDOM_EVENTS.reduce((acc, e) => ({ ...acc, [e.id]: e }), {})
                     };
                     const nextEvent = allEvents[nextEventId];
                     if (nextEvent) {
@@ -378,10 +477,195 @@ export const useGameStore = create<GameStore>()(
                 }));
 
                 get().addLog(logMsg);
+            },
+
+            drinkCoffee: (itemId) => {
+                const state = get();
+                const item = ALL_ITEMS[itemId];
+                if (!item || !item.effect) return;
+
+                // Check limits (Flat White only)
+                if (itemId === 'coffee' && state.coffeeConsumed >= 2) {
+                    get().addLog("You've had too much coffee this quarter!");
+                    return;
+                }
+
+                // Check cost
+                if (state.stats.money < item.price) return;
+
+                // Apply
+                get().updateMoney(-item.price);
+                if (item.effect.ap) get().updateStats({ sanity: item.effect.sanity, health: item.effect.health });
+                // Need manual AP update because updateStats doesn't handle AP usually (it's separate state)
+                // Wait, useActionPoints consumes. We need gainActionPoints.
+                // We don't have gainActionPoints helper.
+                // modify state directly
+                set(s => ({ actionPoints: s.actionPoints + (item.effect?.ap || 0) }));
+
+                if (itemId === 'coffee') {
+                    set(s => ({ coffeeConsumed: s.coffeeConsumed + 1 }));
+                }
+
+                get().addLog(`Consumed ${item.name}. AP +${item.effect.ap}`);
+            },
+
+            buyGift: (itemId) => {
+                const state = get();
+                const item = ALL_ITEMS[itemId];
+                if (!item || state.stats.money < item.price) return;
+
+                get().updateMoney(-item.price);
+                set(s => ({ inventory: [...s.inventory, itemId] }));
+                get().addLog(`Bought ${item.name}.`);
+            },
+
+            giveGift: (npcId, giftId) => {
+                const state = get();
+                // Check inventory
+                if (!state.inventory.includes(giftId)) return;
+
+                const npc = NPC_DATA[npcId];
+                const item = ALL_ITEMS[giftId];
+                if (!npc || !item) return;
+
+                // Remove from inventory
+                const newInv = [...state.inventory];
+                const index = newInv.indexOf(giftId);
+                if (index > -1) newInv.splice(index, 1);
+
+                // Calc Rel
+                let relDelta = 10; // Base
+                let logMsg = `Gifted ${item.name} to ${npc.name}.`;
+
+                // Tags matching
+                if (npc.likes && item.tags && item.tags.some(tag => npc.likes?.includes(tag))) {
+                    relDelta += 15;
+                    logMsg += " They loved it! (+25 Rel)";
+                } else if (npc.dislikes && item.tags && item.tags.some(tag => npc.dislikes?.includes(tag))) {
+                    relDelta = -5;
+                    logMsg += " They didn't seem to like it. (-5 Rel)";
+                } else {
+                    logMsg += " (+10 Rel)";
+                }
+
+                // Update
+                set(s => ({
+                    inventory: newInv,
+                    npcRelations: {
+                        ...s.npcRelations,
+                        [npcId]: Math.min(100, (s.npcRelations[npcId] || 0) + relDelta)
+                    }
+                }));
+                get().addLog(logMsg);
+            },
+
+            handleStudyComplete: (score) => {
+                // Score depends on rounds (0-3 normally)
+                // Base: 2 WAM.
+                // Bonus: +1 WAM per score.
+                // Sanity: -5.
+
+                const wamGain = 2 + score;
+                const intGain = score >= 3 ? 2 : 1; // Bonus Int for good performance
+
+                get().updateStats({
+                    wam: wamGain,
+                    intelligence: intGain,
+                    sanity: -5
+                });
+
+                get().addLog(`Study Session Complete! WAM +${wamGain}, Int +${intGain}. (-2 AP)`);
+                // Note: AP is consumed when starting the game in Dashboard
+            },
+
+            triggerEnding: (endingId) => {
+                // Set Game Over state
+                set({ isGameOver: true, gameOverReason: endingId });
+                // Unlock in Legacy Store
+                // We'll calculate points in the EndingScreen based on stats
+                // But we should unlock the ID here or there? Better there to avoid side effects if re-rendering.
+                // Actually, let's just set state here.
+            },
+
+            performWeekendAction: (cost, effect) => {
+                const s = get();
+                if (s.hasTakenWeekendAction) return;
+
+                // Pay Cost
+                if (s.stats.money < cost.money) return; // Should check in UI too
+
+                set(state => ({
+                    stats: {
+                        ...state.stats,
+                        money: state.stats.money - cost.money,
+                        sanity: Math.min(100, state.stats.sanity + effect.sanity),
+                        experience: state.stats.experience + (effect.experience || 0),
+                        network: state.stats.network + (effect.network || 0),
+                    },
+                    hasTakenWeekendAction: true,
+                    eventsLog: [
+                        `Weekend Vibes! Sanity +${effect.sanity}`,
+                        ...state.eventsLog
+                    ]
+                }));
+                SoundManager.playSuccess();
+            },
+
+            setPlayerProfile: (updates) => {
+                set(state => ({
+                    profile: { ...state.profile, ...updates }
+                }));
+            },
+
+            checkEnding: () => {
+                const s = get();
+                // Only check during active play phases
+                if (s.phase !== 'student' && s.phase !== 'graduate') return;
+
+                // --- BAD ENDINGS (Check First) ---
+                // Dropout: WAM too low or Sanity 0
+                if (s.stats.wam < 50 || s.stats.sanity <= 0) {
+                    get().triggerEnding('dropout');
+                    return;
+                }
+
+                // Forced Departure: Visa expired (handled in advanceQuarter, but double-check)
+                if (s.visaStatus.expiryDays <= 0 && s.stats.pr_score < 85) {
+                    get().triggerEnding('forced_departure');
+                    return;
+                }
+
+                // --- GOOD ENDINGS (Check at game completion) ---
+                // These should ideally be checked when player explicitly "Ends Game" or time runs out
+                // For now, we'll check them in advanceQuarter when totalQuarters reaches max
+
+                // Entrepreneur: Money >= $200k & Network >= 80
+                if (s.stats.money >= 200000 && s.stats.network >= 80) {
+                    get().triggerEnding('entrepreneur');
+                    return;
+                }
+
+                // PR Granted: PR Score >= 85
+                if (s.stats.pr_score >= 85) {
+                    get().triggerEnding('pr_granted');
+                    return;
+                }
+
+                // Academic: WAM >= 85 & Intelligence >= 90
+                if (s.stats.wam >= 85 && s.stats.intelligence >= 90) {
+                    get().triggerEnding('academic');
+                    return;
+                }
+
+                // Global Talent: Money >= $50k & WAM >= 75 (fallback good ending)
+                if (s.stats.money >= 50000 && s.stats.wam >= 75) {
+                    get().triggerEnding('global_talent');
+                    return;
+                }
             }
         }),
         {
-            name: 'aus-sim-storage', // unique name
+            name: 'aus-sim-storage-v2', // unique name
             storage: createJSONStorage(() => localStorage),
         }
     )

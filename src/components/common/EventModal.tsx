@@ -57,12 +57,25 @@ export const EventModal: React.FC = () => {
             <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border border-white/20 flex flex-col max-h-[85vh] transform animate-in zoom-in-95 duration-300">
 
                 {/* Header Image Area */}
-                <div className={clsx("h-40 relative flex items-center justify-center bg-gradient-to-br transition-all", config.gradient)}>
-                    <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-transparent to-transparent"></div>
-                    <Icon className="w-16 h-16 text-white/50 relative z-10" />
+                <div className={clsx("h-40 relative flex items-center justify-center bg-gradient-to-br transition-all overflow-hidden", config.gradient)}>
+                    {currentEvent.image ? (
+                        <div className="absolute inset-0 z-10">
+                            <img
+                                src={currentEvent.image}
+                                alt={currentEvent.title}
+                                className="w-full h-full object-cover opacity-90 hover:opacity-100 transition-opacity duration-700"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent"></div>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-transparent to-transparent"></div>
+                            <Icon className="w-16 h-16 text-white/50 relative z-10" />
+                        </>
+                    )}
 
                     {/* Badge */}
-                    <div className="absolute -bottom-4 right-8 px-4 py-2 bg-white rounded-full shadow-lg border border-slate-100 flex items-center gap-2">
+                    <div className="absolute -bottom-4 right-8 px-4 py-2 bg-white rounded-full shadow-lg border border-slate-100 flex items-center gap-2 z-20">
                         <div className={clsx("w-2 h-2 rounded-full animate-pulse", config.color.replace('text', 'bg'))}></div>
                         <span className={clsx("text-[10px] font-black uppercase tracking-widest", config.color)}>
                             {currentEvent.type}

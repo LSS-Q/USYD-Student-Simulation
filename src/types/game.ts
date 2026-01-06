@@ -29,6 +29,8 @@ export interface NPC {
     desc: string;
     avatar?: string; // Optional icon/image mapping
     initialRel: number;
+    likes?: string[]; // item tags
+    dislikes?: string[]; // item tags
 }
 
 export type VisaSubclass = 'subclass_500' | 'subclass_485' | 'bridging_a' | 'subclass_190' | 'subclass_189' | 'expired';
@@ -44,13 +46,53 @@ export interface PlayerStats {
     experience: number;
     network: number;
     pr_score: number;
+    intelligence: number;
+    coding: number;
+    health: number;
 }
+
+export interface InventoryItem {
+    id: string;
+    name: string;
+    price: number;
+    description: string;
+    category: 'consumable' | 'gift';
+    effect?: {
+        ap?: number;
+        sanity?: number;
+        health?: number;
+    };
+    tags?: string[]; // e.g. 'book', 'tech', 'luxury'
+}
+
+export interface DialogueOption {
+    text: string;
+    nextId?: string | null; // null = end
+    effect?: {
+        rel?: number;
+        sanity?: number;
+    };
+    req?: {
+        minRel?: number;
+    };
+}
+
+export interface DialogueNode {
+    id: string;
+    text: string;
+    options: DialogueOption[];
+}
+
+
+export type PlayerBackground = 'wealthy' | 'middle' | 'working';
 
 export interface PlayerProfile {
     name: string;
     gender: Gender;
+    avatar?: string; // P2: Character avatar
     degree: DegreeType;
     major: MajorType;
+    background: PlayerBackground;
     // Initial choices, immutable after start
 }
 
@@ -73,10 +115,14 @@ export interface GameState {
 
     // Assets & Housing
     housing: HousingType;
+    currentRegion: RegionType;
     assets: AssetType[];
+    inventory: string[]; // Item IDs
+    coffeeConsumed: number; // Limit per quarter
 
     // Inventory / Status
-    visaExpiryDays: number;
+    visaStatus: VisaStatus;
+    quartersStudied: number;
     actionPoints: number;
     maxActionPoints: number;
 
@@ -95,6 +141,9 @@ export const INITIAL_STATS: PlayerStats = {
     wam: 65,
     english: 50,
     experience: 0,
-    network: 0,
-    pr_score: 0
+    network: 10,
+    pr_score: 0,
+    intelligence: 50,
+    coding: 0,
+    health: 100
 };

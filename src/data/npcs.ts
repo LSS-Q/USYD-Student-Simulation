@@ -8,7 +8,9 @@ export const NPC_DATA: Record<string, NPC> = {
         title: 'Academic Advisor',
         category: 'academic',
         desc: '严厉但负责的华裔教授。搞定她，HD和推荐信都不是问题。',
-        initialRel: 30
+        initialRel: 30,
+        likes: ['academic', 'coffee'],
+        dislikes: ['game', 'luxury']
     },
     'tutor_david': {
         id: 'tutor_david',
@@ -42,7 +44,9 @@ export const NPC_DATA: Record<string, NPC> = {
         title: '富家千金',
         category: 'social',
         desc: '住在豪华海景房，日常是逛街和High Tea。也是进入上流圈子的门票。',
-        initialRel: 20
+        initialRel: 20,
+        likes: ['luxury', 'fashion'],
+        dislikes: ['cheap', 'academic']
     },
     'party_king_kevin': {
         id: 'party_king_kevin',
@@ -118,7 +122,9 @@ export const NPC_DATA: Record<string, NPC> = {
         title: 'Arts Student',
         category: 'romance',
         desc: '文艺女神，喜欢逛展和看海。',
-        initialRel: 10
+        initialRel: 10,
+        likes: ['art', 'book', 'flowers', 'romance'],
+        dislikes: ['game', 'tech']
     },
     'crush_tom': {
         id: 'crush_tom',

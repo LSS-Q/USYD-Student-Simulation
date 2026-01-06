@@ -1,6 +1,9 @@
 import React from 'react';
 import { useGameStore } from '../../stores/useGameStore';
+import { useLanguageStore } from '../../stores/useLanguageStore';
 import { WelcomeModal } from '../common/WelcomeModal';
+import { WeekendModal } from '../common/WeekendModal';
+import { MemoryGameModal } from '../games/MemoryGameModal';
 import {
     Activity,
     Brain,
@@ -12,7 +15,8 @@ import {
     Briefcase,
     Coffee,
     Book,
-    PartyPopper
+    PartyPopper,
+    Sun
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -24,14 +28,38 @@ export const DashboardView: React.FC = () => {
         useActionPoints,
         updateStats,
         eventsLog,
-        advanceQuarter
+        advanceQuarter,
+        coffeeConsumed,
+        drinkCoffee,
+        handleStudyComplete,
+        hasTakenWeekendAction
     } = useGameStore();
+    const { t } = useLanguageStore();
+
+    const [isMemoryGameOpen, setIsMemoryGameOpen] = React.useState(false);
+    const [isWeekendModalOpen, setIsWeekendModalOpen] = React.useState(false);
+
+    const handleFlatWhite = () => {
+        drinkCoffee('coffee');
+    };
+
+    const handleEnergyDrink = () => {
+        drinkCoffee('energy_drink');
+    };
 
     // Re-implementing simplified actions for now
     const handleStudy = () => {
-        if (useActionPoints(2)) {
-            updateStats({ wam: 2, sanity: -5 });
+        // -2 AP
+        if (actionPoints >= 2) {
+            if (useActionPoints(2)) {
+                setIsMemoryGameOpen(true);
+            }
         }
+    };
+
+    const onMemoryGameValid = (score: number) => {
+        handleStudyComplete(score);
+        setIsMemoryGameOpen(false);
     };
 
     const handleJob = () => {
@@ -55,29 +83,37 @@ export const DashboardView: React.FC = () => {
     };
 
     const handlePlay = () => {
+        if (stats.money < 100) {
+            alert("你没有足够的钱去浪！");
+            return;
+        }
+
         if (useActionPoints(2)) {
-            if (stats.money >= 100) {
-                updateStats({ sanity: 25, network: 2, money: -100 });
-            } else {
-                alert("你没有足够的钱去浪！");
-                // Refund AP ideally, but for now simple check
-            }
+            updateStats({ sanity: 25, network: 2, money: -100 });
         }
     };
 
     // Stats Configuration
     const statCards = [
-        { label: 'Sanity', value: stats.sanity, max: 100, icon: Brain, color: 'text-pink-600', bg: 'bg-pink-50' },
-        { label: 'WAM', value: stats.wam, max: 100, icon: Activity, color: 'text-blue-600', bg: 'bg-blue-50' },
-        { label: 'English', value: stats.english, max: 90, icon: Globe, color: 'text-purple-600', bg: 'bg-purple-50' },
-        { label: 'Network', value: stats.network, max: 100, icon: Users, color: 'text-orange-600', bg: 'bg-orange-50' },
+        { label: t.stats.sanity, value: stats.sanity, max: 100, icon: Brain, color: 'text-pink-600', bg: 'bg-pink-50' },
+        { label: t.stats.wam, value: stats.wam, max: 100, icon: Activity, color: 'text-blue-600', bg: 'bg-blue-50' },
+        { label: t.stats.english, value: stats.english, max: 90, icon: Globe, color: 'text-purple-600', bg: 'bg-purple-50' },
+        { label: t.stats.network, value: stats.network, max: 100, icon: Users, color: 'text-orange-600', bg: 'bg-orange-50' },
         { label: 'Experience', value: stats.experience, max: 100, icon: Briefcase, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-        { label: 'PR Score', value: stats.pr_score, max: 100, icon: Award, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+        { label: t.stats.pr_score, value: stats.pr_score, max: 100, icon: Award, color: 'text-indigo-600', bg: 'bg-indigo-50' },
     ];
 
     return (
         <div className="space-y-6">
             <WelcomeModal />
+            <MemoryGameModal
+                isOpen={isMemoryGameOpen}
+                onClose={() => setIsMemoryGameOpen(false)}
+                onComplete={onMemoryGameValid}
+            />
+            {isWeekendModalOpen && (
+                <WeekendModal onClose={() => setIsWeekendModalOpen(false)} />
+            )}
 
             {/* Stats Grid */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -146,6 +182,37 @@ export const DashboardView: React.FC = () => {
                             </div>
                         </button>
 
+                        <button
+                            onClick={handleFlatWhite}
+                            disabled={stats.money < 6 || coffeeConsumed >= 2}
+                            className="flex flex-col items-center justify-center p-6 rounded-xl border-2 border-slate-100 hover:border-amber-500 hover:bg-amber-50 transition gap-3 disabled:opacity-50 disabled:cursor-not-allowed group relative"
+                        >
+                            <div className="absolute top-2 right-2 text-[10px] font-bold text-amber-600 bg-amber-100 px-1.5 rounded-full">
+                                {coffeeConsumed}/2
+                            </div>
+                            <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center group-hover:scale-110 transition">
+                                <Coffee className="w-6 h-6 text-amber-600" />
+                            </div>
+                            <div className="text-center">
+                                <div className="font-bold text-slate-800">Flat White</div>
+                                <div className="text-xs text-slate-500 mt-1 font-mono">-$6 | +1 AP | -Sanity</div>
+                            </div>
+                        </button>
+
+                        <button
+                            onClick={handleEnergyDrink}
+                            disabled={stats.money < 12}
+                            className="flex flex-col items-center justify-center p-6 rounded-xl border-2 border-slate-100 hover:border-red-500 hover:bg-red-50 transition gap-3 disabled:opacity-50 disabled:cursor-not-allowed group"
+                        >
+                            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center group-hover:scale-110 transition">
+                                <Zap className="w-6 h-6 text-red-600" />
+                            </div>
+                            <div className="text-center">
+                                <div className="font-bold text-slate-800">V Energy</div>
+                                <div className="text-xs text-slate-500 mt-1 font-mono">-$12 | +3 AP | -Health</div>
+                            </div>
+                        </button>
+
                         {/* Uber Eats (Conditional) */}
                         {assets && assets.includes('car_camry') && (
                             <button
@@ -191,6 +258,25 @@ export const DashboardView: React.FC = () => {
                             <div className="text-center">
                                 <div className="font-bold text-slate-800">Party</div>
                                 <div className="text-xs text-slate-500 mt-1 font-mono">-2 AP | -$100 | +25 Sanity</div>
+                            </div>
+                        </button>
+
+                        <button
+                            onClick={() => setIsWeekendModalOpen(true)}
+                            disabled={hasTakenWeekendAction}
+                            className="col-span-2 flex items-center justify-between p-4 rounded-xl border-2 border-amber-100 bg-amber-50 hover:border-amber-400 hover:bg-amber-100 transition gap-4 disabled:opacity-50 disabled:cursor-not-allowed group"
+                        >
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-full bg-amber-200 flex items-center justify-center group-hover:scale-110 transition">
+                                    <Sun className="w-6 h-6 text-amber-700" />
+                                </div>
+                                <div className="text-left">
+                                    <div className="font-bold text-slate-800 text-lg">Plan Weekend Trip</div>
+                                    <div className="text-xs text-slate-600 font-mono">Special activity (Once per quarter)</div>
+                                </div>
+                            </div>
+                            <div className="px-4 py-2 bg-white rounded-lg text-xs font-bold text-amber-600 border border-amber-200 group-hover:bg-amber-400 group-hover:text-white transition">
+                                {hasTakenWeekendAction ? 'COMPLETED' : 'VIEW OPTIONS'}
                             </div>
                         </button>
                     </div>
@@ -296,7 +382,7 @@ export const DashboardView: React.FC = () => {
                     </div>
                 </div>
 
-            </div>
-        </div>
+            </div >
+        </div >
     );
 };

@@ -57,6 +57,11 @@ export const MigrationView: React.FC = () => {
 
     // Apply for State Nomination
     const handleStateNom = () => {
+        if (stats.money < 500) {
+            alert("申请费需要 $500，攒攒钱再来吧。");
+            return;
+        }
+
         if (useActionPoints(5)) {
             updateStats({ pr_score: 5, sanity: -5, money: -500 }); // Application fee
         }

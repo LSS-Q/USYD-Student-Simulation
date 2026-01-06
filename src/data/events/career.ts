@@ -1,4 +1,5 @@
 import { GameEvent } from '../../types/event';
+import { EVENT_IMAGES } from '../../assets/index';
 
 export const CAREER_EVENTS: Record<string, GameEvent> = {
     // --- Part-time Job Events ---
@@ -32,6 +33,7 @@ export const CAREER_EVENTS: Record<string, GameEvent> = {
         title: '黑心老板',
         description: '已经一个月了，老板还是"忘记"发你工资。你问了好几次，每次都说"下周"。',
         type: 'career',
+        image: EVENT_IMAGES['part_time_job'],
         options: [
             {
                 label: '继续等',
@@ -142,6 +144,7 @@ export const CAREER_EVENTS: Record<string, GameEvent> = {
         title: '兼职升职',
         description: '奶茶店老板看你手脚麻利，想让你当 Shift Lead。时薪涨了 $2，但责任也大了。',
         type: 'career',
+        image: EVENT_IMAGES['part_time_job'],
         options: [
             {
                 label: '接下重担',

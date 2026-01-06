@@ -5,9 +5,10 @@ import clsx from 'clsx';
 
 interface HeaderProps {
     title: string;
+    extraActions?: React.ReactNode;
 }
 
-export const Header: React.FC<HeaderProps> = ({ title }) => {
+export const Header: React.FC<HeaderProps> = ({ title, extraActions }) => {
     const {
         year,
         quarter,
@@ -70,6 +71,13 @@ export const Header: React.FC<HeaderProps> = ({ title }) => {
                         />
                     </div>
                 </div>
+
+                {/* Extra Actions (P2 Fix: Layout Overlap) */}
+                {extraActions && (
+                    <div className="flex items-center gap-2 border-l border-slate-200 pl-6 ml-2">
+                        {extraActions}
+                    </div>
+                )}
 
             </div>
         </header>

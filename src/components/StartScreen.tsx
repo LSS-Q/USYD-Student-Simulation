@@ -1,17 +1,24 @@
 import React, { useState } from 'react';
 import { useGameStore } from '../stores/useGameStore';
 import { DEGREE_CONFIG, MAJOR_CONFIG } from '../data/constants';
-import { DegreeType, Gender, MajorType } from '../types/game';
+import { DegreeType, Gender, MajorType, PlayerBackground } from '../types/game';
 import clsx from 'clsx';
-import { GraduationCap, BookOpen, User, ArrowRight } from 'lucide-react';
+import { GraduationCap, BookOpen, User, ArrowRight, Briefcase, Trophy, Check } from 'lucide-react';
+import { LegacyModal } from './LegacyModal';
+import { useLegacyStore } from '../stores/useLegacyStore';
+import { PLAYER_AVATARS } from '../assets/index';
 
 export const StartScreen: React.FC = () => {
     const startGame = useGameStore((state) => state.startGame);
 
     const [name, setName] = useState('');
     const [gender, setGender] = useState<Gender>('female');
+    const [selectedAvatar, setSelectedAvatar] = useState(PLAYER_AVATARS['female']); // Default match
+    const [background, setBackground] = useState<PlayerBackground>('middle');
     const [degree, setDegree] = useState<DegreeType>('master');
     const [major, setMajor] = useState<MajorType>('commerce');
+    const [showLegacyModal, setShowLegacyModal] = useState(false);
+    const legacyPoints = useLegacyStore(state => state.legacyPoints);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -22,8 +29,10 @@ export const StartScreen: React.FC = () => {
         startGame({
             name,
             gender,
+            avatar: selectedAvatar,
             degree,
-            major
+            major,
+            background
         });
     };
 
@@ -56,6 +65,21 @@ export const StartScreen: React.FC = () => {
                 <div className="md:w-2/3 p-8 md:p-12 overflow-y-auto max-h-[90vh]">
                     <form onSubmit={handleSubmit} className="space-y-8">
 
+                        {/* Legacy Link (only if points > 0 usually, but let's show always for demo) */}
+                        <div className="flex justify-between items-center bg-yellow-50 p-4 rounded-xl border border-yellow-200 cursor-pointer hover:bg-yellow-100 transition"
+                            onClick={() => setShowLegacyModal(true)}>
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-yellow-500 text-white rounded-lg">
+                                    <Trophy className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-yellow-900">Alumni Network</h3>
+                                    <p className="text-xs text-yellow-700">Unlock legacy buffs</p>
+                                </div>
+                            </div>
+                            <span className="font-bold text-yellow-800 text-lg">{legacyPoints} Pts</span>
+                        </div>
+
                         {/* Identity Section */}
                         <div>
                             <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
@@ -74,34 +98,75 @@ export const StartScreen: React.FC = () => {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-600 mb-2">性别 (Gender)</label>
-                                    <div className="flex gap-4">
-                                        <button
-                                            type="button"
-                                            onClick={() => setGender('female')}
-                                            className={clsx(
-                                                "flex-1 py-2 px-4 rounded-lg border transition text-sm font-medium",
-                                                gender === 'female'
-                                                    ? "bg-pink-50 border-pink-200 text-pink-700 ring-1 ring-pink-500"
-                                                    : "border-slate-200 hover:bg-slate-50 text-slate-600"
-                                            )}
-                                        >
-                                            女 (Female)
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setGender('male')}
-                                            className={clsx(
-                                                "flex-1 py-2 px-4 rounded-lg border transition text-sm font-medium",
-                                                gender === 'male'
-                                                    ? "bg-blue-50 border-blue-200 text-blue-700 ring-1 ring-blue-500"
-                                                    : "border-slate-200 hover:bg-slate-50 text-slate-600"
-                                            )}
-                                        >
-                                            男 (Male)
-                                        </button>
+                                    <label className="block text-sm font-medium text-slate-600 mb-2">形象 (Avatar)</label>
+                                    <div className="flex gap-4 justify-start">
+                                        {[
+                                            { id: 'male', src: PLAYER_AVATARS['male'], label: 'Male' },
+                                            { id: 'female', src: PLAYER_AVATARS['female'], label: 'Female' }
+                                        ].map((opt) => (
+                                            <div
+                                                key={opt.id}
+                                                onClick={() => {
+                                                    setGender(opt.id as Gender);
+                                                    setSelectedAvatar(opt.src);
+                                                }}
+                                                className={clsx(
+                                                    "relative cursor-pointer transition-all duration-300 transform group",
+                                                    gender === opt.id ? "scale-105" : "opacity-60 hover:opacity-100 hover:scale-105"
+                                                )}
+                                            >
+                                                <img
+                                                    src={opt.src}
+                                                    alt={opt.label}
+                                                    className={clsx(
+                                                        "w-20 h-20 rounded-full object-cover border-4",
+                                                        gender === opt.id ? "border-blue-500 shadow-lg" : "border-slate-200"
+                                                    )}
+                                                />
+                                                {gender === opt.id && (
+                                                    <div className="absolute -bottom-1 -right-1 bg-blue-500 text-white rounded-full p-1 border-2 border-white">
+                                                        <Check size={12} strokeWidth={4} />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+
+                        {/* Family Background Section */}
+                        <div>
+                            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
+                                <Briefcase className="w-5 h-5 text-blue-600" />
+                                家庭背景 (Family Background)
+                            </h2>
+                            <div className="grid grid-cols-1 gap-3">
+                                {[
+                                    { id: 'wealthy', label: '富二代 (Wealthy)', money: '$50,000', desc: 'Starting Easy. Money is not an issue.', color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200' },
+                                    { id: 'middle', label: '中产家庭 (Middle Class)', money: '$10,000', desc: 'Standard Start. Tuition is covered, rent is on you.', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200' },
+                                    { id: 'working', label: '工薪阶层 (Working Class)', money: '$5,000', desc: 'Hard Mode. You need to work to survive.', color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200' },
+                                ].map((bg) => (
+                                    <button
+                                        key={bg.id}
+                                        type="button"
+                                        onClick={() => setBackground(bg.id as PlayerBackground)}
+                                        className={clsx(
+                                            "w-full text-left p-3 rounded-xl border transition flex justify-between items-center group",
+                                            background === bg.id
+                                                ? `${bg.bg} ${bg.border} ring-1 ring-offset-1`
+                                                : "border-slate-200 hover:bg-slate-50"
+                                        )}
+                                    >
+                                        <div>
+                                            <div className={clsx("font-bold text-sm", background === bg.id ? "text-slate-900" : "text-slate-700")}>{bg.label}</div>
+                                            <div className="text-xs text-slate-500">{bg.desc}</div>
+                                        </div>
+                                        <div className={clsx("font-mono font-bold text-sm", bg.color)}>
+                                            {bg.money}
+                                        </div>
+                                    </button>
+                                ))}
                             </div>
                         </div>
 
@@ -208,6 +273,7 @@ export const StartScreen: React.FC = () => {
                     </form>
                 </div>
             </div>
+            <LegacyModal isOpen={showLegacyModal} onClose={() => setShowLegacyModal(false)} />
         </div>
     );
 };

@@ -1,0 +1,16 @@
+export const REAL_TIME_EVENTS = [
+    "📱 Mom: '记得按时吃饭，别老是吃外卖。'",
+    "📱 Mom: '悉尼天气怎么样？多穿点衣服。'",
+    "📱 Dad: '生活费已转账，省着点花。'",
+    "📰 News: 'AUD/CNY exchange rate hits a new low!'",
+    "📰 News: 'USYD rankings rise in latest QS World University Rankings.'",
+    "💬 WeChat: 'USYD Rants posted a new confession regarding COMP2017.'",
+    "💬 WeChat: 'CSSA is hosting a BBQ event this weekend.'",
+    "📧 Email: 'Canvas: New announcement for INFO1113.'",
+    "📧 Email: 'Woolworths: Half price specials this week!'",
+    "🔔 System: 'You feel a sudden urge to drink bubble tea.'",
+    "🔔 System: 'A deadline is approaching somewhere...'",
+    "🌤️ Weather: 'It started raining. Typical Sydney.'",
+    "🚌 Transport: 'Trains are delayed due to signal failure at Redfern.'",
+    "🚌 Transport: 'Trackwork this weekend. Buses replace trains.'",
+];

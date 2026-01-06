@@ -1,4 +1,5 @@
 import { GameEvent } from '../../types/event';
+import { EVENT_IMAGES } from '../../assets/index';
 
 export const ACADEMIC_EVENTS: Record<string, GameEvent> = {
     // --- Group Project Chain ---
@@ -7,6 +8,7 @@ export const ACADEMIC_EVENTS: Record<string, GameEvent> = {
         title: 'Group Assignment Time',
         description: 'Semester 刚开始，Tutor 要求大家分组完成一个占比 40% 的大作业。你环顾四周...',
         type: 'academic',
+        image: EVENT_IMAGES['study_pressure'],
         options: [
             {
                 label: '找学霸抱大腿',
@@ -103,6 +105,7 @@ export const ACADEMIC_EVENTS: Record<string, GameEvent> = {
         title: 'Fisher Library 熬夜战',
         description: 'Final 期间，Fisher 24小时爆满。你终于在角落里抢到了一个带插座的位置。准备通宵吗？',
         type: 'academic',
+        image: EVENT_IMAGES['study_pressure'],
         options: [
             {
                 label: '不刷完不回家',

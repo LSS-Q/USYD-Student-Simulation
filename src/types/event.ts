@@ -1,4 +1,4 @@
-import { PlayerStats, VisaSubclass } from './game';
+import { PlayerStats, VisaSubclass, GameState } from './game';
 
 export interface GameEventOption {
     label: string;
@@ -26,5 +26,5 @@ export interface GameEvent {
     type: 'academic' | 'career' | 'life' | 'random';
     options: GameEventOption[];
     // Auto-trigger conditions (handled by store logic, defined here for reference)
-    triggerCondition?: (stats: PlayerStats) => boolean;
+    triggerCondition?: (state: GameState) => boolean;
 }

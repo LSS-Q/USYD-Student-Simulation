@@ -1,16 +1,21 @@
 import React from 'react';
+import { useLanguageStore } from '../../stores/useLanguageStore';
 import {
     LayoutDashboard,
     GraduationCap,
     Briefcase,
+    Users,
     Coffee,
     Plane,
+    FileText,
     Settings,
     LogOut,
-    Users // Added Users
+    Volume2,
+    VolumeX
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useGameStore } from '../../stores/useGameStore';
+import { SoundManager } from '../../utils/SoundManager'; // Import SoundManager
 
 interface SidebarProps {
     currentView: string;
@@ -19,14 +24,18 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView }) => {
     const resetGame = useGameStore(state => state.resetGame);
+    const [isBgmOn, setIsBgmOn] = React.useState(false);
+
+    const { t } = useLanguageStore();
 
     const menuItems = [
-        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { id: 'academics', label: 'Academics', icon: GraduationCap },
-        { id: 'career', label: 'Career', icon: Briefcase },
-        { id: 'network', label: 'Network', icon: Users }, // Added Network
-        { id: 'lifestyle', label: 'Lifestyle', icon: Coffee },
-        { id: 'migration', label: 'Migration', icon: Plane },
+        { id: 'dashboard', label: t.nav.dashboard, icon: LayoutDashboard },
+        { id: 'academics', label: t.nav.academics, icon: GraduationCap },
+        { id: 'career', label: t.nav.career, icon: Briefcase },
+        { id: 'network', label: t.nav.network, icon: Users },
+        { id: 'lifestyle', label: t.nav.lifestyle, icon: Coffee },
+        { id: 'migration', label: t.nav.migration, icon: Plane },
+        { id: 'resume', label: t.nav.resume, icon: FileText },
     ];
 
     const handleLogout = () => {
@@ -35,6 +44,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView }) =
             // Ideally this should redirect to home or handle state change
             window.location.reload();
         }
+    };
+
+    const handleToggleBgm = () => {
+        const newState = SoundManager.toggleBGM();
+        setIsBgmOn(newState);
     };
 
     return (
@@ -66,6 +80,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView }) =
             </nav>
 
             <div className="p-4 border-t border-slate-800">
+                <button
+                    onClick={handleToggleBgm}
+                    className={clsx(
+                        "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium mb-1",
+                        isBgmOn ? "text-emerald-400 hover:bg-emerald-900/20" : "text-slate-400 hover:bg-slate-800"
+                    )}
+                >
+                    {isBgmOn ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+                    BGM: {isBgmOn ? 'ON' : 'OFF'}
+                </button>
+
                 <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition-colors text-sm font-medium text-slate-400">
                     <Settings className="w-5 h-5" />
                     Settings

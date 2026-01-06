@@ -22,13 +22,16 @@ Inspired by games like *Chinese Parents (中国式家长)* and *Chili Pepper Sim
 - **Event System | 事件系统**: Encounter random life events based on your phase (Student, Graduate, Working).
 - **Visa System | 签证系统**: Start on Student Visa (500), graduate to Graduate Visa (485), and eventually apply for PR.
 
-### V2.0 Features | V2.0 新增功能
-- **Economy System | 经济系统**:
-    - **Housing Tiers**: Living Room (cheapest) → Studio (luxury). Each affects rent and sanity.
-    - **Asset Ownership**: Buy a car to unlock high-paying gig jobs like "Uber Eats".
-- **NPC Social Network | NPC 社交网络**:
-    - **20+ NPCs** across 5 categories: Academic (professors), Social (friends), Career (mentors), Romance (crushes), Service (landlord).
-    - Build relationships via Chat, Gift, or Date interactions.
+### V2.1 Updates | V2.1 更新 (Latest)
+- **Strict Economy | 严苛经济**:
+    - **No More Debt**: Bankruptcy (Money < 0) now immediately triggers a "Financial Ruin" Game Over.
+    - **Rebalanced Start**:
+        - 💎 Wealthy (富二代): $50,000 (Harder than before)
+        - 🏠 Middle Class (中产): $10,000 (Standard)
+        - 👷 Working Class (工薪): $5,000 (Hard Mode)
+- **Enhanced Gameplay | 游戏性增强**:
+    - **AP Boost**: Action Points increased to **50 per quarter** (was 10), allowing for more flexible strategies.
+    - **Visual Upgrade**: Added pixel art avatars for 6 key NPCs and player characters.
 - **Regional Strategy | 区域策略**:
     - **4 Regions**: City CBD, Eastern Suburbs, Inner West, Western Suburbs.
     - Each region affects **Rent Multiplier**, **Sanity Modifier**, and **Safety Level**.
@@ -136,6 +139,16 @@ Contributions are welcome! Feel free to:
 
 This project is for educational and entertainment purposes only.
 本项目仅供学习和娱乐目的。
+
+---
+
+## ❓ Troubleshooting | 常见问题
+
+### Data not updating? / 数据没更新？
+If you see old data (e.g., outdated money or AP), please try clearing your browser cache or local storage.
+The game now uses `aus-sim-storage-v2`.
+
+如果发现数据异常（如旧的初始资金），请尝试清除浏览器缓存或 LocalStorage。游戏已升级存储键值为 `v2`。
 
 ---
 

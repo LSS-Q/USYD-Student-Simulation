@@ -3,6 +3,7 @@ import { useGameStore } from '../../stores/useGameStore';
 import { CAREER_EVENTS } from '../../data/events/career';
 import { Briefcase, DollarSign, TrendingUp, AlertTriangle, Users, Search } from 'lucide-react';
 import clsx from 'clsx';
+import { MiniGameModal } from '../games/MiniGameModal';
 
 export const CareerView: React.FC = () => {
     const {
@@ -14,18 +15,29 @@ export const CareerView: React.FC = () => {
         profile
     } = useGameStore();
 
+    const [isMiniGameOpen, setIsMiniGameOpen] = React.useState(false);
+
     // Part-time job with random event
     const handlePartTimeJob = () => {
         if (useActionPoints(3)) {
-            updateStats({ money: 200, sanity: -5 });
+            setIsMiniGameOpen(true);
+        }
+    };
 
-            // 25% chance of bad event
-            const roll = Math.random();
-            if (roll < 0.15) {
-                triggerEvent(CAREER_EVENTS['parttime_discrimination']);
-            } else if (roll < 0.25) {
-                triggerEvent(CAREER_EVENTS['parttime_wage_theft']);
-            }
+    const handleMiniGameComplete = (score: number) => {
+        const basePay = 50;
+        const bonus = score * 20;
+        const totalPay = Math.min(400, basePay + bonus);
+        const sanityCost = 5 + Math.floor(score / 3);
+
+        updateStats({ money: totalPay, sanity: -sanityCost });
+
+        // 25% chance of bad event
+        const roll = Math.random();
+        if (roll < 0.15) {
+            triggerEvent(CAREER_EVENTS['parttime_discrimination']);
+        } else if (roll < 0.25) {
+            triggerEvent(CAREER_EVENTS['parttime_wage_theft']);
         }
     };
 
@@ -50,6 +62,10 @@ export const CareerView: React.FC = () => {
 
     // Networking
     const handleNetworking = () => {
+        if (stats.money < 30) {
+            alert("连杯咖啡 ($30) 都请不起，怎么混圈子？");
+            return;
+        }
         if (useActionPoints(2)) {
             updateStats({ network: 3, sanity: -3, money: -30 }); // Coffee/event costs
         }
@@ -57,6 +73,11 @@ export const CareerView: React.FC = () => {
 
     return (
         <div className="space-y-6">
+            <MiniGameModal
+                isOpen={isMiniGameOpen}
+                onClose={() => setIsMiniGameOpen(false)}
+                onComplete={handleMiniGameComplete}
+            />
             {/* Career Status */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
                 <div className="flex items-center gap-3 mb-4">

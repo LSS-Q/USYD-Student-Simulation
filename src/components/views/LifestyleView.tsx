@@ -3,8 +3,9 @@ import { useGameStore } from '../../stores/useGameStore';
 import { LIFE_EVENTS } from '../../data/events/life';
 import { HOUSING_CONFIG } from '../../data/constants';
 import { REGIONS } from '../../data/regions';
-import { RegionType } from '../../types/game';
-import { Coffee, Heart, Home, Car, Smile, Key, Map } from 'lucide-react';
+import { Tooltip } from '../common/Tooltip';
+import { RegionType, HousingType } from '../../types/game';
+import { Coffee, Heart, Home, Car, Smile, Key, Map, ArrowUp } from 'lucide-react';
 
 export const LifestyleView: React.FC = () => {
     const {
@@ -18,7 +19,8 @@ export const LifestyleView: React.FC = () => {
         addAsset,
         updateMoney,
         currentRegion,
-        setRegion
+        setRegion,
+        setHousing
     } = useGameStore();
 
     const currentHousing = HOUSING_CONFIG[housing];
@@ -34,6 +36,11 @@ export const LifestyleView: React.FC = () => {
 
     // Entertainment
     const handleEntertainment = () => {
+        if (stats.money < 50) {
+            alert("你甚至付不起 $50 的入场费... 去打工吧！");
+            return;
+        }
+
         if (useActionPoints(2)) {
             updateStats({ sanity: 15, money: -50 }); // Buffed slightly
 
@@ -78,13 +85,48 @@ export const LifestyleView: React.FC = () => {
         }
 
         const target = REGIONS[regionKey];
-        if (confirm(`确定要搬去 ${target.label} 吗？\n\n费用: $300 + 2 AP\n房租系数: ${target.rentModifier}x\n治安: ${target.security.toUpperCase()}`)) {
-            useActionPoints(2);
-            updateMoney(-300);
-            setRegion(regionKey);
-            updateStats({ sanity: -5 }); // Stress of moving
-            alert(`搬家成功！你现在住在 ${target.label}。`);
+        // Execute region change directly without confirm
+        useActionPoints(2);
+        updateMoney(-300);
+        setRegion(regionKey);
+        updateStats({ sanity: -5 }); // Stress of moving
+        alert(`🏠 搬家成功！你现在住在 ${target.label}。\n\n费用: $300\n房租系数: ${target.rentModifier}x`);
+    };
+
+    // Housing upgrade order
+    const housingOrder: HousingType[] = ['living_room', 'shared_room', 'master_room', 'studio'];
+
+    const handleChangeHousing = (newHousing: HousingType) => {
+        if (newHousing === housing) return;
+
+        const currentConfig = HOUSING_CONFIG[housing];
+        const targetConfig = HOUSING_CONFIG[newHousing];
+
+        // Calculate 4 weeks deposit difference
+        const currentDeposit = currentConfig.weeklyCost * 4;
+        const targetDeposit = targetConfig.weeklyCost * 4;
+        const depositDiff = targetDeposit - currentDeposit;
+
+        if (depositDiff > 0 && stats.money < depositDiff) {
+            alert(`钱不够！升级住房需要补交押金差价 $${depositDiff}。`);
+            return;
         }
+
+        if (actionPoints < 1) {
+            alert("体力不足！换房需要消耗 1 AP。");
+            return;
+        }
+
+        const confirmMsg = depositDiff > 0
+            ? `确定要升级到 ${targetConfig.label} 吗?\n\n补交押金: $${depositDiff} + 1 AP\n周租: $${targetConfig.weeklyCost}/wk\n心态影响: ${targetConfig.sanityModifier > 0 ? '+' : ''}${targetConfig.sanityModifier}/季度`
+            : `确定要降级到 ${targetConfig.label} 吗?\n\n退还押金: $${Math.abs(depositDiff)} + 1 AP\n周租: $${targetConfig.weeklyCost}/wk\n心态影响: ${targetConfig.sanityModifier > 0 ? '+' : ''}${targetConfig.sanityModifier}/季度`;
+
+        // Execute housing change directly without confirm
+        useActionPoints(1);
+        updateMoney(-depositDiff); // Negative = refund
+        setHousing(newHousing);
+        updateStats({ sanity: depositDiff > 0 ? 5 : -3 }); // Upgrade feels good, downgrade is sad
+        alert(depositDiff > 0 ? `🏠 恭喜乔迁！你现在住 ${targetConfig.label}。\n\n补交押金: $${depositDiff}` : `🏠 已降级到 ${targetConfig.label}，省钱是美德。\n\n退还押金: $${Math.abs(depositDiff)}`);
     };
 
     return (
@@ -144,19 +186,94 @@ export const LifestyleView: React.FC = () => {
 
                         {/* Region Selector */}
                         <div className="grid grid-cols-2 gap-2 mt-auto">
-                            {(Object.values(REGIONS) as any[]).map((r) => (
-                                <button
-                                    key={r.id}
-                                    onClick={() => handleMoveRegion(r.id)}
-                                    disabled={currentRegion === r.id}
-                                    className={`text-xs py-2 px-1 rounded border transition ${currentRegion === r.id
-                                        ? 'bg-slate-800 text-white border-slate-800'
-                                        : 'bg-white border-slate-200 text-slate-600 hover:border-blue-400 hover:text-blue-600'
-                                        }`}
-                                >
-                                    {r.label.split(' ')[0]} {currentRegion !== r.id && `(x${r.rentModifier})`}
-                                </button>
-                            ))}
+                            {(Object.values(REGIONS) as any[]).map((r) => {
+                                const isCurrent = currentRegion === r.id;
+                                const canAfford = stats.money >= 300;
+                                const hasAp = actionPoints >= 2;
+                                const isDisabled = isCurrent || (!canAfford && !isCurrent) || (!hasAp && !isCurrent);
+
+                                let tooltipMsg = "";
+                                if (!isCurrent) {
+                                    if (!canAfford) tooltipMsg = "缺钱: 需要 $300";
+                                    else if (!hasAp) tooltipMsg = "体力不足: 需要 2 AP";
+                                }
+
+                                return (
+                                    <Tooltip key={r.id} content={tooltipMsg}>
+                                        <button
+                                            onClick={() => handleMoveRegion(r.id)}
+                                            disabled={isDisabled}
+                                            className={`w-full text-xs py-2 px-1 rounded border transition ${isCurrent
+                                                ? 'bg-slate-800 text-white border-slate-800'
+                                                : isDisabled
+                                                    ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+                                                    : 'bg-white border-slate-200 text-slate-600 hover:border-blue-400 hover:text-blue-600'
+                                                }`}
+                                        >
+                                            {r.label.split(' ')[0]} {!isCurrent && `(x${r.rentModifier})`}
+                                        </button>
+                                    </Tooltip>
+                                );
+                            })}
+                        </div>
+
+                        {/* Housing Type Selector */}
+                        <div className="mt-4">
+                            <div className="flex items-center gap-2 mb-2">
+                                <ArrowUp className="w-4 h-4 text-indigo-600" />
+                                <span className="text-xs font-bold text-slate-600 uppercase">Change Housing Type</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                {housingOrder.map((h) => {
+                                    const config = HOUSING_CONFIG[h];
+                                    const isCurrentHousing = housing === h;
+                                    const currentIdx = housingOrder.indexOf(housing);
+                                    const targetIdx = housingOrder.indexOf(h);
+
+                                    // Calculate deposit diff for tooltip
+                                    const currentDeposit = HOUSING_CONFIG[housing].weeklyCost * 4;
+                                    const targetDeposit = config.weeklyCost * 4;
+                                    const depositDiff = targetDeposit - currentDeposit;
+
+                                    const canAfford = depositDiff <= 0 || stats.money >= depositDiff;
+                                    const hasAp = actionPoints >= 1;
+                                    const isDisabled = isCurrentHousing || (!canAfford) || (!hasAp);
+
+                                    let tooltipMsg = "";
+                                    if (!isCurrentHousing) {
+                                        if (!canAfford) tooltipMsg = `缺钱: 需要 $${depositDiff}`;
+                                        else if (!hasAp) tooltipMsg = "体力不足: 需要 1 AP";
+                                    }
+
+                                    const isUpgrade = targetIdx > currentIdx;
+                                    return (
+                                        <Tooltip key={h} content={tooltipMsg}>
+                                            <button
+                                                onClick={() => handleChangeHousing(h)}
+                                                disabled={isDisabled}
+                                                className={`w-full text-xs py-2 px-2 rounded border transition text-left ${isCurrentHousing
+                                                    ? 'bg-indigo-600 text-white border-indigo-600'
+                                                    : isDisabled
+                                                        ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+                                                        : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-400 hover:text-indigo-600'
+                                                    }`}
+                                            >
+                                                <div className="flex justify-between items-center">
+                                                    <span className="font-medium truncate">{config.label.split(' ')[0]}</span>
+                                                    {!isCurrentHousing && (
+                                                        <span className={`text-[10px] font-mono ${isDisabled ? 'text-slate-400' : isUpgrade ? 'text-emerald-600' : 'text-orange-500'}`}>
+                                                            {isUpgrade ? '↑' : '↓'}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="text-[10px] opacity-70 mt-0.5">
+                                                    ${config.weeklyCost}/wk | {config.sanityModifier > 0 ? '+' : ''}{config.sanityModifier}🧠
+                                                </div>
+                                            </button>
+                                        </Tooltip>
+                                    );
+                                })}
+                            </div>
                         </div>
                     </div>
                 </div>
